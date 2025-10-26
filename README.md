@@ -57,6 +57,16 @@ This system implements a Retrieval-Augmented Generation (RAG) pipeline that:
 - Congress.gov API key
 - Local LLM runtime (Ollama) with model `qwen2.5:7b` pulled and running
 
+### One-command run (recommended)
+
+Use the provided script to set up everything (venv, dependencies, Docker services) and run the pipeline end-to-end:
+
+```bash
+./Run_Me.sh
+```
+
+Note: If needed, make it executable first with `chmod +x Run_Me.sh`.
+
 ### Setup Instructions
 
 1. **Clone and Setup Environment**
@@ -79,7 +89,7 @@ This system implements a Retrieval-Augmented Generation (RAG) pipeline that:
    docker-compose up -d
    ```
 
-4. **Run the Pipeline**
+4. **Run the Pipeline** (manual alternative to the script above)
    ```bash
    python run_integrated_pipeline.py
    ```
