@@ -1,0 +1,9 @@
+redpanda:
+  adminApi:
+    enabled: true
+    advertisedAddress: "localhost:18081"
+kafka:
+  brokers: ["localhost:19092"]
+schemaRegistry:
+  enabled: true
+  advertisedServer: "localhost:18081"
