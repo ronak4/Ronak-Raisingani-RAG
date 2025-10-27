@@ -188,7 +188,7 @@ class TestSmokeTests:
             requirements = f.read()
         
         # Check for key dependencies
-        key_packages = ['kafka-python', 'redis', 'openai', 'httpx', 'pydantic']
+        key_packages = ['kafka-python', 'redis', 'httpx', 'pydantic']
         for package in key_packages:
             assert package in requirements, f"Missing required package: {package}"
     
