@@ -30,6 +30,7 @@ graph LR
 ## Detailed Architecture Diagram
 
 ```mermaid
+%%{init: {'themeVariables': { 'primaryTextColor': '#000', 'textColor': '#000', 'labelTextColor': '#000' }}}%%
 flowchart TB
     subgraph DATA["📊 Data Source"]
         API[Congress.gov API<br/>Bills, Committees, Members<br/>Actions, Amendments, Votes]
