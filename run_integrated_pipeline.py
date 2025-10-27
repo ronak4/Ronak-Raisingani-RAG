@@ -50,7 +50,7 @@ def flush_redis():
         )
         return True
     except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to flush Redis: {e}")
+        print(f"Failed to flush Redis: {e}")
         return False
 
 
