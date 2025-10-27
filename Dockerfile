@@ -24,6 +24,9 @@ RUN mkdir -p output cache
 # Set environment variables
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
+ENV REDIS_HOST=localhost
+ENV REDIS_PORT=6379
+ENV KAFKA_BOOTSTRAP_SERVERS=localhost:19092
 
 # Expose port (if needed for monitoring)
 EXPOSE 8000
