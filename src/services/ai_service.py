@@ -20,8 +20,6 @@ import os
 import asyncio
 import time
 from typing import Dict, Optional, Any
-
-from openai import OpenAI
 from dotenv import load_dotenv
 load_dotenv()
 from utils.schemas import BillData, QUESTION_PROMPTS
