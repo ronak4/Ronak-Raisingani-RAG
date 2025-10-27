@@ -4,7 +4,6 @@ six==1.16.0
 redis==5.0.1
 requests==2.31.0
 python-dotenv==1.0.0
-openai>=1.40.0
 
 # LLM and AI
 ollama==0.1.7
@@ -22,3 +21,8 @@ tqdm==4.66.1
 # Testing
 pytest==7.4.3
 pytest-asyncio==0.21.1
+
+# Additional
+urllib3>=1.26.0,<3.0.0  
+certifi>=2023.0.0 
+charset-normalizer>=3.0.0 
