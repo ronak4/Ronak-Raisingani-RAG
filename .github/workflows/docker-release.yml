@@ -26,4 +26,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}:latest,ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          tags: ghcr.io/ronak4/ronak-raisingani-rag:latest,ghcr.io/ronak4/ronak-raisingani-rag:${{ github.ref_name }}
