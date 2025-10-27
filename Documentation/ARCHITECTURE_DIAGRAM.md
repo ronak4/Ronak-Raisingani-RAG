@@ -3,7 +3,16 @@
 ## High-Level System Flow
 
 ```mermaid
-%%{init: {'themeVariables': { 'primaryTextColor': '#000', 'textColor': '#000', 'labelTextColor': '#000' }}}%%
+%%{init: {
+  "theme": "default",
+  "themeVariables": {
+    "primaryTextColor": "#000",
+    "textColor": "#000",
+    "labelTextColor": "#000",
+    "fontFamily": "\"Segoe UI\", Tahoma, Geneva, Verdana, sans-serif"
+  },
+  "themeCSS": ".clusterLabel text, .subgraphLabel text { fill: #000 !important; }"
+}}%%
 graph LR
     A[Congress.gov API] --> B[Controller]
     B --> C[Kafka Topics]
@@ -30,7 +39,16 @@ graph LR
 ## Detailed Architecture Diagram
 
 ```mermaid
-%%{init: {'themeVariables': { 'primaryTextColor': '#000', 'textColor': '#000', 'labelTextColor': '#000' }}}%%
+%%{init: {
+  "theme": "default",
+  "themeVariables": {
+    "primaryTextColor": "#000",
+    "textColor": "#000",
+    "labelTextColor": "#000",
+    "fontFamily": "\"Segoe UI\", Tahoma, Geneva, Verdana, sans-serif"
+  },
+  "themeCSS": ".clusterLabel text, .subgraphLabel text { fill: #000 !important; }"
+}}%%
 flowchart TB
     subgraph DATA["📊 Data Source"]
         API[Congress.gov API<br/>Bills, Committees, Members<br/>Actions, Amendments, Votes]
