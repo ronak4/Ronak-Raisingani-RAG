@@ -51,8 +51,7 @@ graph LR
     end
     
     subgraph "LLM Layer"
-        OPENAI[OpenAI Service]
-        GROQ[Groq Integration]
+        OLLAMA[Local Ollama Service<br/>qwen2.5:7b Model]
     end
     
     subgraph "Worker Layer"
@@ -73,10 +72,10 @@ graph LR
     CTRL --> STATE
     CONG --> CACHE
     CONG --> API[Congress.gov API]
-    QW1 --> OPENAI
-    QW2 --> OPENAI
+    QW1 --> OLLAMA
+    QW2 --> OLLAMA
     LC1 --> HTTP[HTTP Client]
-    AG1 --> OPENAI
+    AG1 --> OLLAMA
     STATE --> REDIS
     KAFKA --> QW1
     KAFKA --> QW2
@@ -94,6 +93,7 @@ sequenceDiagram
     participant QW as Question Workers
     participant LC as Link Checkers
     participant AG as Article Generator
+    participant OLLAMA as Local Ollama
     participant R as Redis
     participant O as Output JSON
     
@@ -102,12 +102,16 @@ sequenceDiagram
     C->>K: Publish question tasks
     K->>QW: Consume question tasks
     QW->>API: Get additional data
+    QW->>OLLAMA: Generate answers
+    OLLAMA-->>QW: AI responses
     QW->>K: Publish answers
     K->>LC: Consume link check tasks
     LC->>HTTP: Validate URLs
     LC->>K: Publish link results
     K->>AG: Consume article tasks
     AG->>R: Check completion status
+    AG->>OLLAMA: Generate article
+    OLLAMA-->>AG: Complete article
     AG->>O: Generate final article
     AG->>K: Publish completion
 ```
@@ -197,7 +201,7 @@ graph TB
     
     subgraph "External Services"
         CONGRESS[Congress.gov API]
-        OPENAI[OpenAI/Groq API]
+        OLLAMA[Local Ollama<br/>AI Service]
     end
     
     REDPANDA --> CONTROLLER
@@ -205,7 +209,7 @@ graph TB
     CONSOLE --> REDPANDA
     CONTROLLER --> WORKERS
     WORKERS --> CONGRESS
-    WORKERS --> OPENAI
+    WORKERS --> OLLAMA
 ```
 
 ## Security Architecture

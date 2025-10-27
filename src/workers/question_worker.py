@@ -17,7 +17,7 @@ import asyncio
 import logging
 import time
 import uuid
-from typing import Dict, Any
+from typing import Dict, Any, List
 from services.congress_api import CongressAPIClient
 from services.ai_service import AIService
 from services.state_manager import StateManager
@@ -240,8 +240,7 @@ class QuestionWorker:
                 self.worker_id, "running", self.tasks_processed, self.errors_count
             )
             
-            # Update task counts
-            self.tasks_processed += 1
+            # End task tracking
             await get_monitor().end_task(task_id, success=True)
             
             self.logger.info(f"Completed: {message.bill_id} - Q{message.question_id} (Total: {self.tasks_processed})")
@@ -255,7 +254,7 @@ class QuestionWorker:
                 self.worker_id, "error", self.tasks_processed, self.errors_count
             )
     
-    def _extract_sources_from_answer(self, answer: str) -> list[str]:
+    def _extract_sources_from_answer(self, answer: str) -> List[str]:
         """
         /**
          * Extract markdown and plain URLs from an answer.

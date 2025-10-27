@@ -21,6 +21,7 @@ import asyncio
 import time
 from typing import Dict, Optional, Any
 from dotenv import load_dotenv
+from openai import OpenAI
 load_dotenv()
 from utils.schemas import BillData, QUESTION_PROMPTS
 
@@ -66,7 +67,7 @@ class AIService:
          * @raises LLMServiceError if all retries fail.
          */
         """
-        def _call_openai() -> str:
+        def _call_local_llm() -> str:
             messages = []
             if system_prompt:
                 messages.append({"role": "system", "content": system_prompt})
@@ -96,16 +97,16 @@ class AIService:
                     last_err = e
                     if "rate_limit" in str(e).lower() or "429" in str(e):
                         wait_time = backoff * (2 ** attempt)
-                        print(f"Rate limit hit (attempt {attempt + 1}/{max_retries}), waiting {wait_time:.1f}s...")
+                        print(f"Local LLM rate limit hit (attempt {attempt + 1}/{max_retries}), waiting {wait_time:.1f}s...")
                         time.sleep(wait_time)
                     else:
                         # Exponential backoff on other transient errors
                         time.sleep(backoff)
                         backoff *= 2
-            raise LLMServiceError(f"OpenAI generation failed: {last_err}")
+            raise LLMServiceError(f"Local LLM generation failed: {last_err}")
         
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, _call_openai)
+        return await loop.run_in_executor(None, _call_local_llm)
     
     def _format_bill_data_for_prompt(self, bill_data: BillData) -> str:
         """
@@ -276,5 +277,20 @@ Write a complete, compelling news article (aim for 400-500 words) that tells the
 Include proper markdown hyperlinks for all Congress.gov references.
 """
         return await self.generate_text(prompt, system_prompt)
+
+    async def check_model_availability(self) -> bool:
+        """
+        /**
+         * Check if the model is available by making a simple test request.
+         *
+         * @return True if model is available, False otherwise.
+         */
+        """
+        try:
+            # Make a simple test request to check if the model is available
+            test_response = await self.generate_text("Test", "You are a helpful assistant.")
+            return len(test_response) > 0
+        except Exception:
+            return False
 
 
