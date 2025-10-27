@@ -71,7 +71,7 @@ Note: If needed, make it executable first with `chmod +x Run_Me.sh`.
 
 1. **Clone and Setup Environment**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/ronak4/Ronak-Raisingani-RAG
    cd newsGen
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
