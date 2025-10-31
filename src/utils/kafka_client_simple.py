@@ -63,8 +63,7 @@ class KafkaProducer:
                 'timestamp': time.time()
             }
             
-            # Store in Redis list
-            self.redis_client.lpush(f"queue:{topic}", json.dumps(message_data))
+            await asyncio.to_thread(self.redis_client.lpush, f"queue:{topic}", json.dumps(message_data))
             return True
         except Exception as e:
             raise KafkaClientError(f"Failed to publish message: {e}")
@@ -112,7 +111,7 @@ class KafkaConsumer:
             try:
                 for topic in self.topics:
                     # Get message from Redis list (blocking with timeout)
-                    message_data = self.redis_client.brpop(f"queue:{topic}", timeout=0.1)
+                    message_data = await asyncio.to_thread(self.redis_client.brpop, f"queue:{topic}", 0.5)
                     
                     if message_data:
                         _, message_json = message_data

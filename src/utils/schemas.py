@@ -135,6 +135,7 @@ class BillData(BaseModel):
     amendments: List[Dict[str, Any]] = Field(default_factory=list)
     votes: List[Dict[str, Any]] = Field(default_factory=list)
     hearings: List[Dict[str, Any]] = Field(default_factory=list)
+    summaries: List[Dict[str, Any]] = Field(default_factory=list)
     status: Optional[str] = None
     introduced_date: Optional[str] = None
     last_action_date: Optional[str] = None

@@ -127,7 +127,7 @@ class IntegratedPipeline:
         # Create workers with config
         worker_config = {
             'verbose': False,  # Disable verbose to reduce overhead
-            'max_concurrent_tasks': 12  # Increased for Qwen2.5:7b performance
+            'max_concurrent_tasks': 14  # Increased for Qwen2.5:7b performance
         }
         
         # Create question workers
@@ -207,7 +207,7 @@ class IntegratedPipeline:
                 if len(completed_bills) >= len(TARGET_BILLS):
                     self.logger.info("All articles completed - stopping pipeline")
                     break
-                await asyncio.sleep(2)  # Check every 2 seconds
+                await asyncio.sleep(1)  # Check every 1 seconds
             
             # Cancel controller task since we're done
             controller_task.cancel()
@@ -283,7 +283,7 @@ class IntegratedPipeline:
         
         while self.running:
             try:
-                await asyncio.sleep(15)  # Update every 15 seconds for faster feedback
+                await asyncio.sleep(10)  # Update every 15 seconds for faster feedback
                 
                 # Get performance stats
                 monitor = get_monitor()
@@ -390,7 +390,7 @@ async def main():
     
     pipeline = IntegratedPipeline(
         num_question_workers=8,  # Increased for Qwen2.5:7b speed
-        num_link_checkers=1,
+        num_link_checkers=2,
         verbose=False  # Only errors and progress
     )
     
@@ -402,16 +402,13 @@ async def main():
     
     signal.signal(signal.SIGINT, signal_handler)
     
-    try:
-        await pipeline.run_pipeline()
-    except KeyboardInterrupt:
-        print("\nShutting down...")
-        await pipeline.cleanup()
-    except Exception as e:
-        print(f"\nPipeline failed: {e}")
-        await pipeline.cleanup()
-        sys.exit(1)
+    await pipeline.run_pipeline()
 
+try:
+    import uvloop  # type: ignore
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+except ImportError:
+    pass
 
 if __name__ == "__main__":
     asyncio.run(main())
