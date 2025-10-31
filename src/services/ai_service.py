@@ -586,6 +586,7 @@ Write a complete, compelling news article (aim for 600-900 words) that tells the
   7. Have any votes happened on the bill? If so, was it a party-line vote or a bipartisan one?
 
 **Writing Style:**
+- MUST USE URLS FOR ALL CONGRESS.GOV REFERENCES WHERE POSSIBLE.
 - Write in political journalistic style for general readers, not technical summaries
 - Use active voice and engaging language
 - Avoid technical jargon - write for general audience
