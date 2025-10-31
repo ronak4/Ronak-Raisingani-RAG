@@ -41,7 +41,7 @@ class AIService:
      */
     """
     
-    def __init__(self, model: Optional[str] = None, timeout: float = 60.0):
+    def __init__(self, model: Optional[str] = None, timeout: float = 180.0):
         """
         /**
          * Initialize the AI service for local inference.
@@ -82,9 +82,18 @@ class AIService:
                     resp = self._client.chat.completions.create(
                         model=self.model,
                         messages=messages,
-                        temperature=0.3,  # Lower for faster sampling
-                        max_tokens=max_tokens if max_tokens is not None else 8192,  # Increased for full article generation
+                        temperature=0.2,  # Lower for faster sampling
+                        max_tokens=max_tokens if max_tokens is not None else 512,
                         timeout=self.timeout,
+                        extra_body={
+                            "options": {
+                            "num_ctx": 8192,
+                            "num_keep": 256,
+                            "top_k": 30,
+                            "top_p": 0.9,
+                            "repeat_penalty": 1.05
+                            }
+                        }
                     )
                     duration = time.time() - start
                     try:
@@ -399,7 +408,7 @@ class AIService:
 
 Answer:
 """
-        return await self.generate_text(full_prompt, system_prompt, max_tokens=1536)
+        return await self.generate_text(full_prompt, system_prompt, max_tokens=80)
     
     async def generate_article(self, bill_data: BillData, question_answers: Dict[int, str], link_check_results: Dict[str, Any] = None) -> str:
         """
@@ -522,7 +531,7 @@ Write a complete, compelling news article (aim for 600-900 words) that tells the
 - Start with an engaging lead paragraph that captures attention
 - Use flowing narrative paragraphs, not bullet points or technical lists
 - Write in political journalistic style for general readers, not technical summaries
-- Include all 7 key elements naturally within the story:
+- Include all 7 key elements naturally within the story WITHOUT using mini paragraphs to switch topics OR TOPIC HEADLINES:
   1. What does this bill do? Where is it in the process?
   2. What committees is this bill in?
   3. Who is the sponsor?
@@ -543,7 +552,7 @@ Write a complete, compelling news article (aim for 600-900 words) that tells the
 
 Include proper markdown hyperlinks for all Congress.gov references.
 """
-        return await self.generate_text(prompt, system_prompt, max_tokens=6144)
+        return await self.generate_text(prompt, system_prompt, max_tokens=1536)
 
     async def check_model_availability(self) -> bool:
         """

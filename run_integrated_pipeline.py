@@ -127,7 +127,7 @@ class IntegratedPipeline:
         # Create workers with config
         worker_config = {
             'verbose': False,  # Disable verbose to reduce overhead
-            'max_concurrent_tasks': 14  # Increased for Qwen2.5:7b performance
+            'max_concurrent_tasks': 20  # Increased for Qwen2.5:7b performance
         }
         
         # Create question workers

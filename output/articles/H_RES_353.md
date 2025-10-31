@@ -8,42 +8,36 @@
 
 ---
 
-**Raising Awareness: The Journey of H.Res.353 to Honor Missing and Murdered Indigenous Women**
+**Raising Awareness: The Push for National Day of Awareness for Missing and Murdered Indigenous Women and Girls**
 
-In the heart of Washington D.C., Representative Dan Newhouse from Washington’s 4th district introduced a bill that seeks to honor an often-overlooked tragedy in America. On May 5, 2023, if passed, this resolution would designate a day of awareness for missing and murdered indigenous women and girls—a critical step towards recognizing the ongoing struggle faced by these communities.
+In the ongoing effort to address the critical issue of missing and murdered indigenous women and girls, Representative Dan Newhouse (R-WA) has introduced a resolution that seeks to designate May 5, 2023, as the "National Day of Awareness for Missing and Murdered Indigenous Women and Girls." [H.Res.353](https://www.congress.gov/bill/118th-congress/hres/353) is currently in the early stages of the legislative process, with no specific votes or amendments proposed yet.
 
-**What Does This Bill Do? Where Is It In The Process?**
+The resolution aims to raise awareness about this pressing issue that disproportionately affects Native American communities. According to the National Indigenous Women’s Resource Center, more than 5,700 Native women are missing and murdered in the United States, but many cases go unreported due to systemic issues within law enforcement and a lack of resources.
 
-H.Res.353 aims to raise public awareness about the alarming rates of violence against Native American women and girls. By setting aside a day for this important cause, lawmakers hope to bring attention to the issue and honor those who have been lost. As of now, the bill has not yet moved beyond its introduction stage; it is currently referred to both the Natural Resources Committee and the Judiciary Committee.
+**Committees and Process**
 
-**What Committees Is This Bill In?**
+H.Res.353 is currently under consideration by two key committees: the [House Committee on Natural Resources](https://api.congress.gov/v3/committee/house/hsii00?format=json) and the [House Judiciary Committee](https://api.congress.gov/v3/committee/house/hsju00?format=json). These committees will play a crucial role in shaping the bill's future. The Natural Resources Committee is responsible for matters related to public lands, water resources, and tribal relations, while the Judiciary Committee handles issues like civil rights and criminal justice.
 
-The bill, H.Res.353, is part of two key committees: the Natural Resources Committee and the Judiciary Committee. These committees will play a crucial role in shaping the future direction of the resolution. By being referred to these specific panels, the bill aims to address both legal and environmental aspects related to missing and murdered indigenous women and girls.
+**Sponsorship and Cosponsors**
 
-**Who Is The Sponsor?**
+Rep. Dan Newhouse from Washington’s 4th district introduced H.Res.353. As a Republican representative, he has taken on this issue with bipartisan support. The bill currently has 39 cosponsors, including both Democrats and Republicans. Notably, Rep. Gwen Moore (D-WI-4) and Rep. Doris Matsui (D-CA-7) are among the cosponsors, highlighting the cross-party nature of the effort.
 
-Representative Dan Newhouse (R-WA) is the sponsor of H.Res.353. A Republican from Washington’s 4th district, Newhouse has taken a proactive stance on this issue, recognizing its importance in his home state where Native American communities face significant challenges. His leadership and advocacy have brought attention to this critical matter.
+**Hearings**
 
-**Who Cosponsored This Bill? Are Any Of The Cosponsors On The Committee That The Bill Is In?**
+While no specific hearings have been held on H.Res.353 itself, it is important to note that several related hearings have taken place under the House Public Lands Committee in 2024. These hearings focused on issues such as public lands management and tribal relations, which are relevant to the broader context of missing and murdered indigenous women and girls.
 
-H.Res.353 has garnered support from 20 cosponsors, including members of both the Natural Resources Committee and the Judiciary Committee. While specific names are not provided here, you can find a full list of cosponsors on [Congress.gov](https://www.congress.gov/bill/117th-congress/house-resolution/353). This broad support across party lines underscores the importance of addressing this issue.
+**Amendments**
 
-**Have Any Hearings Happened On The Bill? If So, What Were The Findings?**
+As of now, no amendments have been proposed for H.Res.353. The bill remains in its initial stages with only the sponsor’s original text. This means that any changes or additions would need to be introduced by a committee member during the markup process.
 
-As of now, no hearings have been held for H.Res.353. Given its current stage in the legislative process, it is too early to discuss any findings or reports related to the bill. However, once hearings are scheduled and conducted, they will provide a platform for experts, advocates, and community members to share their insights.
+**Votes**
 
-**Have Any Amendments Been Proposed On The Bill? If So, Who Proposed Them And What Do They Do?**
+No votes have been recorded on H.Res.353 yet. Given the current status, it is unclear when and how this resolution might move forward. The next steps will likely involve further discussion within the relevant committees before any votes are held.
 
-There have been no amendments proposed for H.Res.353 at this time. As the bill moves through its initial stages, any changes or additions will be noted on [Congress.gov](https://www.congress.gov/bill/117th-congress/house-resolution/353). Keeping an eye on these updates can provide valuable information about potential modifications.
+**Conclusion**
 
-**Have Any Votes Happened On The Bill? If So, Was It A Party-Line Vote Or A Bipartisan One?**
+The introduction of H.Res.353 by Rep. Dan Newhouse marks an important step in raising awareness about the issue of missing and murdered indigenous women and girls. With bipartisan support from 40 members of Congress, this resolution has the potential to make a significant impact. However, its success will depend on how it progresses through the legislative process.
 
-No votes have taken place on H.Res.353 yet. Given its current status, it is too early to determine if or when a vote might occur. However, the bipartisan support among cosponsors suggests that there may be a strong chance for passage once the bill reaches the floor.
+As the bill moves forward, stakeholders and advocates hope that increased attention will lead to tangible improvements in policies and resources aimed at addressing this critical issue. The upcoming hearings and committee actions will be crucial in determining the fate of H.Res.353 and whether it can become a meaningful tool for change.
 
-**Conclusion:**
-
-H.Res.353 represents an important step in recognizing and addressing the issue of missing and murdered indigenous women and girls. With 20 cosponsors and referral to key committees, this resolution has the potential to make a significant impact. As it moves through the legislative process, continued support from lawmakers and the public is crucial for its success.
-
-To stay informed about the latest developments on H.Res.353, you can visit [Congress.gov](https://www.congress.gov/bill/117th-congress/house-resolution/353) to track its progress. Together, we can work towards a future where every voice is heard and every life matters.
-
-[Congress.gov](https://www.congress.gov/) | [H.Res.353](https://www.congress.gov/bill/117th-congress/house-resolution/353)
+For those concerned about this issue, staying informed and engaged with their representatives is essential. By supporting efforts like H.Res.353, we can work towards ensuring that every voice is heard and every life matters.
