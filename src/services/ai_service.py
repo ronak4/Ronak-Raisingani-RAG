@@ -40,6 +40,56 @@ class AIService:
      * @param timeout: Per-request timeout in seconds.
      */
     """
+
+    BILL_TYPE_SLUG = {
+        "hr":"house-bill","s":"senate-bill",
+        "hjres":"house-joint-resolution","sjres":"senate-joint-resolution",
+        "hconres":"house-concurrent-resolution","sconres":"senate-concurrent-resolution",
+        "hres":"house-resolution","sres":"senate-resolution",
+    }
+    def _bill_slug(self, bt: str) -> str:
+        return self.BILL_TYPE_SLUG.get((bt or "").lower(), (bt or "").lower())
+    def _cg_bill_url(self, congress: int, bill_type: str, number: int) -> str:
+        return f"https://www.congress.gov/bill/{congress}th-congress/{self._bill_slug(bill_type)}/{number}"
+    def _cg_member_url(self, bioguide_id: str) -> str:
+        return f"https://www.congress.gov/member/{bioguide_id}"
+    def _cg_committee_url(self, code: str) -> str:
+        return f"https://www.congress.gov/committee/{(code or '').lower()}"
+    def _prefer_public_url(self, obj: dict, *, fallback: str = "") -> str:
+        for k in ("congressdotgov_url","website_url","url"):
+            u = (obj or {}).get(k)
+            if u:
+                return self._convert_api_url_to_user_url(u)
+        return fallback or "https://www.congress.gov"
+
+    def _cg_amendment_url(self, congress: int, bill_type: str, bill_no: int, amd_no: int) -> str:
+        return f"https://www.congress.gov/amendment/{congress}th-congress/{self._bill_slug(bill_type)}/{bill_no}/amendment/{amd_no}"
+
+    def _vote_public_url(self, vote: dict, bill: BillData) -> str:
+        """
+        Build a stable public roll-call URL when possible.
+        House:  https://clerk.house.gov/Votes/YYYYRRR
+        Senate: https://www.senate.gov/legislative/LIS/roll_call_votes/voteCCC{S}/vote_CCC_S_RRRRR.htm
+        where CCC=Congress (e.g. 118), S=1 or 2 (odd/even year), RRRRR=zero-padded roll.
+        Fallback: bill page.
+        """
+        try:
+            roll = vote.get("roll_number") or vote.get("roll_call")
+            chamber = (vote.get("chamber") or "").lower()
+            date = (vote.get("vote_date") or "")
+            year = int(date[:4]) if len(date) >= 4 and date[:4].isdigit() else None
+            if not roll or not year:
+                return self._cg_bill_url(bill.congress, bill.bill_type, bill.bill_number)
+            if chamber.startswith("house"):
+                return f"https://clerk.house.gov/Votes/{year}{int(roll)}"
+            if chamber.startswith("senate"):
+                congress = bill.congress
+                session = 1 if year % 2 == 3 % 2 else 2 
+                r5 = f"{int(roll):05d}"
+                return f"https://www.senate.gov/legislative/LIS/roll_call_votes/vote{congress}{session}/vote_{congress}_{session}_{r5}.htm"
+        except Exception:
+            pass
+        return self._cg_bill_url(bill.congress, bill.bill_type, bill.bill_number)
     
     def __init__(self, model: Optional[str] = None, timeout: float = 180.0):
         """
@@ -171,27 +221,28 @@ class AIService:
         
         import re
         
-        match = re.search(r'/amendment/(\d+)/(\w+)/(\d+)', api_url)
-        if match:
-            congress, am_type, number = match.groups()
+        m = re.search(r"/bill/(\d+)/(hr|s|hjres|sjres|hconres|sconres|hres|sres)/(\d+)", api_url, re.I)
+        if m:
+            return self._cg_bill_url(int(m[1]), m[2], int(m[3]))
+        m = re.search(r"/member/([a-z0-9]+)", api_url, re.I)
+        if m:
+            return self._cg_member_url(m[1])
+        m = re.search(r"/committee/(house|senate)/([a-z0-9]+)", api_url, re.I)
+        if m:
+            return self._cg_committee_url(m[2])
+        m = re.search(r"/amendment/(\d+)/(hr|s|hjres|sjres|hconres|sconres|hres|sres)/(\d+)", api_url, re.I)
+        if m:
+            congress, btype, bill_no = int(m[1]), m[2], int(m[3])
             if bill_data:
-                bill_type = bill_data.bill_type.lower()
-                bill_num = bill_data.bill_number
-                return f"https://www.congress.gov/bill/{congress}th-congress/{bill_type}/{bill_num}/amendments"
-            # Fallback: construct general amendment URL
-            if am_type == "hamdt":
-                return f"https://www.congress.gov/bill/{congress}th-congress/house-bill/1/amendments"  # Generic fallback
-            elif am_type == "samdt":
-                return f"https://www.congress.gov/bill/{congress}th-congress/senate-bill/1/amendments"  # Generic fallback
-        
-        match = re.search(r'/hearing/(\d+)/(\w+)/(\d+)', api_url)
-        if match:
-            congress, chamber, jacket = match.groups()
-            chamber_name = "house" if chamber == "house" else "senate"
-            # Link to hearings/events page for that congress/chamber
-            return f"https://www.congress.gov/hearings/{congress}th-congress/{chamber_name}"
-        
-        return api_url
+                for amd in (bill_data.amendments or []):
+                    amd_no = amd.get("amendment_number")
+                    if amd_no and str(bill_no) == str(bill_data.bill_number):
+                        try:
+                            return self._cg_amendment_url(congress, btype, bill_no, int(amd_no))
+                        except Exception:
+                            break
+            return self._cg_bill_url(congress, btype, bill_no) + "/amendments"
+        return "https://www.congress.gov"
     
     def _build_congress_urls(self, bill_data: BillData) -> Dict[str, str]:
         """
@@ -203,19 +254,20 @@ class AIService:
          */
         """
         congress = bill_data.congress
-        bill_type = bill_data.bill_type.lower()
+        bill_type = bill_data.bill_type
         bill_num = bill_data.bill_number
         
+        base = self._cg_bill_url(congress, bill_type, bill_num)
         urls = {
-            "bill_url": f"https://www.congress.gov/bill/{congress}th-congress/{bill_type}/{bill_num}",
-            "actions_url": f"https://www.congress.gov/bill/{congress}th-congress/{bill_type}/{bill_num}/actions",
-            "cosponsors_url": f"https://www.congress.gov/bill/{congress}th-congress/{bill_type}/{bill_num}/cosponsors",
+            "bill_url": base,
+            "actions_url": f"{base}/actions",
+            "cosponsors_url": f"{base}/cosponsors",
+            "amendments_url": f"{base}/amendments",
+            "text_url": f"{base}/text",
+            "summary_url": f"{base}/all-info#summaries",
         }
-        
         if bill_data.sponsor and bill_data.sponsor.get('bioguide_id'):
-            bioguide = bill_data.sponsor['bioguide_id']
-            urls["sponsor_url"] = f"https://www.congress.gov/member/{bioguide}"
-        
+            urls["sponsor_url"] = self._cg_member_url(bill_data.sponsor['bioguide_id'])
         return urls
     
     async def answer_question(self, bill_data: BillData, question_id: int) -> str:
@@ -258,7 +310,6 @@ class AIService:
                                 if match:
                                     sponsor_name = match.group(1)
                     introduced_date = amendment.get('introduced_date', 'N/A')
-                    url = amendment.get('url', '')
                     
                     amendments_text += f"\n{i}. Amendment {amendment_num}"
                     if introduced_date and introduced_date != 'N/A':
@@ -269,8 +320,6 @@ class AIService:
                         amendments_text += f"   Purpose: {purpose}\n"
                     elif description:
                         amendments_text += f"   Description: {description[:300]}\n"
-                    if url:
-                        amendments_text += f"   URL: {url}\n"
                 
                 question_specific_data = amendments_text
             else:
@@ -286,7 +335,6 @@ class AIService:
                     dates = hearing.get('dates', [])
                     date_str = dates[0] if dates else 'N/A'
                     citation = hearing.get('citation', '')
-                    url = hearing.get('url', '')
                     
                     hearings_text += f"\n{i}. {title}\n"
                     if jacket_number and jacket_number != 'N/A':
@@ -295,8 +343,6 @@ class AIService:
                         hearings_text += f"   Date: {date_str}\n"
                     if citation:
                         hearings_text += f"   Citation: {citation}\n"
-                    if url:
-                        hearings_text += f"   URL: {url}\n"
                     
                     # Include committee names
                     hearing_committees = hearing.get('committees', [])
@@ -331,10 +377,7 @@ class AIService:
                 for c in bill_data.committees:
                     name = c.get('name', 'N/A')
                     code = c.get('system_code', 'N/A')
-                    url = c.get('url', '')
                     line = f"- {name} ({code})"
-                    if url:
-                        line += f" — {url}"
                     lines.append(line)
                 question_specific_data = "\n".join(lines)
             else:
@@ -361,10 +404,7 @@ class AIService:
                 name = c.get('full_name', 'N/A')
                 party = c.get('party', 'N/A')
                 state = c.get('state', 'N/A')
-                url = c.get('url', '')
                 line = f"- {name} ({party}-{state})"
-                if url:
-                    line += f" — {url}"
                 lines.append(line)
             
             question_specific_data = "\n".join(lines)
@@ -378,19 +418,16 @@ class AIService:
                 result = v.get('result') or 'N/A'
                 date = v.get('vote_date') or 'N/A'
                 chamber = v.get('chamber') or 'N/A'
-                url = v.get('url') or ''
                 desc = (v.get('description') or '').strip()
                 line = f"- {date} [{chamber}] Roll {roll}: {result}"
                 if desc:
                     line += f" — {desc[:160]}"
-                if url:
-                    line += f" — {url}"
                 lines.append(line)
             
             question_specific_data = "\n".join(lines)
         
         system_prompt = (
-            "You are a knowledgeable assistant that answers questions about U.S.\n"
+            "You are a knowledgeable political journalist that answers questions about U.S.\n"
             "congressional bills using only the provided data from Congress.gov.\n"
             "Write answers in a clear, accessible style suitable for news articles.\n"
             "CRITICAL: When URLs are provided in the data, you MUST include them as markdown hyperlinks.\n"
@@ -473,33 +510,41 @@ Answer:
         # Extract URLs from committees
         if bill_data.committees:
             for committee in bill_data.committees:
-                if committee.get('url'):
-                    all_urls_list.append(f"- Committee ({committee.get('name', 'N/A')}): {committee.get('url')}")
+                name = committee.get('name', 'N/A')
+                code = (committee.get('code') or committee.get('committee_code') or committee.get('system_code') or '').lower()
+                url = self._prefer_public_url(committee, fallback=self._cg_committee_url(code))
+                all_urls_list.append(f"- Committee ({name}): {url}")
         
         # Extract URLs from amendments
-        if bill_data.amendments:
-            congress = bill_data.congress
-            bill_type = bill_data.bill_type.lower()
-            bill_num = bill_data.bill_number
-            amendments_url = f"https://www.congress.gov/bill/{congress}th-congress/{bill_type}/{bill_num}/amendments"
-            all_urls_list.append(f"- Amendments: {amendments_url}")
+        have_specific = 0
+        for amd in (bill_data.amendments or [])[:5]:
+            amd_no = amd.get("amendment_number")
+            if amd_no:
+                all_urls_list.append(f"- Amendment {amd_no}: " +
+                                     self._cg_amendment_url(bill_data.congress, bill_data.bill_type, bill_data.bill_number, int(amd_no)))
+                have_specific += 1
+        all_urls_list.append(f"- Amendments (all): {urls['amendments_url']}")
         
         # Extract URLs from votes 
         if bill_data.votes:
-            for vote in bill_data.votes[:20]: 
-                if vote.get('url'):
-                    roll = vote.get('roll_number') or vote.get('roll_call') or 'N/A'
-                    vote_url = vote.get('url')
-                    user_url = self._convert_api_url_to_user_url(vote_url, bill_data)
-                    all_urls_list.append(f"- Vote Roll {roll}: {user_url}")
+            for vote in bill_data.votes[:3]:
+                roll = vote.get('roll_number') or vote.get('roll_call') or 'N/A'
+                vurl = self._vote_public_url(vote, bill_data)
+                all_urls_list.append(f"- Vote Roll {roll}: {vurl}")
         
         # Extract URLs from hearings 
         if bill_data.hearings:
-            for hearing in bill_data.hearings[:10]:
-                if hearing.get('url'):
-                    title = hearing.get('title', 'Hearing')[:50]
-                    user_url = self._convert_api_url_to_user_url(hearing.get('url'), bill_data)
-                    all_urls_list.append(f"- Hearing ({title}): {user_url}")
+            for hearing in bill_data.hearings[:2]:
+                title = (hearing.get('title') or 'Hearing')[:50]
+                hurl = self._prefer_public_url(hearing)
+                if hurl.startswith("https://api.congress.gov"):
+                    committees = hearing.get("committees") or []
+                    if committees:
+                        code = (committees[0].get("code") or committees[0].get("committee_code") or "").lower()
+                        hurl = self._cg_committee_url(code)
+                    else:
+                        hurl = urls['bill_url']
+                all_urls_list.append(f"- Hearing ({title}): {hurl}")
         
         url_context = f"""
 REQUIRED: Use these URLs as markdown hyperlinks throughout your article:
