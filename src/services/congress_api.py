@@ -25,9 +25,11 @@ import json
 import os
 import time
 from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta
-import aiohttp
+from datetime import timedelta
+import datetime
 import httpx
+import re
+from xml.etree import ElementTree as ET
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -36,11 +38,9 @@ load_dotenv()
 
 from utils.schemas import BillData, TARGET_BILLS
 
-
 class CongressAPIError(Exception):
     """Custom exception for Congress.gov API errors."""
     pass
-
 
 class CongressAPIClient:
     """
@@ -72,11 +72,670 @@ class CongressAPIClient:
         }
         if self.api_key:
             self.headers["X-API-Key"] = self.api_key
-            # Also add to params for Congress.gov API
-            self.api_key_param = self.api_key
+        self.api_key_param = self.api_key or None
         
         # Persistent HTTP client with connection pooling
         self._http_client = None
+
+    FACTS_DIR = os.getenv("FACTS_CACHE_DIR","/tmp/legis_facts")
+    FACTS_TTL = 21600
+
+    async def get_committee_details(self, chamber: str, code: str) -> Optional[Dict[str, Any]]:
+        async with httpx.AsyncClient(timeout=30) as c:
+            params = {}
+            if self.api_key:
+                params["api_key"] = self.api_key
+            r = await c.get(f"{self.base_url}/committee/{(chamber or '').lower()}/{(code or '').lower()}",
+                            params=params, headers=self.headers)
+            if r.status_code != 200:
+                return None
+            data = r.json() or {}
+            name = (data.get("committee", {}) or {}).get("name") or data.get("name")
+            return {"code": (code or "").lower(), "name": name, "chamber": chamber}
+
+    async def _get_committee_members(self, chamber: str, code: str) -> set:
+        async with httpx.AsyncClient(timeout=20) as c:
+            params = {}
+            if self.api_key:
+                params["api_key"] = self.api_key
+            r = await c.get(
+                f"{self.base_url}/committee/details/{chamber}/{code.lower()}",
+                params=params,
+                headers=self.headers,
+            )
+            if r.status_code != 200:
+                return set()
+            data = r.json()
+            members = data.get("members", [])
+            return {m.get("bioguideId") for m in members if m.get("bioguideId")}
+
+    async def _fetch_xml(self, url):
+        async with httpx.AsyncClient(timeout=20) as c:
+            r = await c.get(url, headers=self.headers)
+            r.raise_for_status()
+            try:
+                return ET.fromstring(r.text)
+            except ET.ParseError:
+                return None
+
+    def _house_vote_xml(self, year, roll): 
+        return f"https://clerk.house.gov/evs/{year}/roll{int(roll):03d}.xml"
+
+    def _senate_vote_xml(self, congress, session, roll):
+        return f"https://www.senate.gov/legislative/LIS/roll_call_votes/vote{int(congress)}{int(session)}/vote_{int(congress)}_{int(session)}_{int(roll):05d}.xml"
+
+    def _senate_vote_html(self, congress, session, roll):
+        return self._senate_vote_xml(congress, session, roll).replace(".xml",".htm")
+
+    def _derive_roll_hints(self, bill):
+        hints = []
+        for a in bill.actions or []:
+            t = (a.get("text") or a.get("action") or "").upper()
+            d = (a.get("action_date") or a.get("date") or "")[:10]
+            y = int(d[:4]) if d[:4].isdigit() else None
+            m = re.search(r"(?:ROLL(?:\s|-)?CALL(?:\s|-)?VOTE\s*NO?\.?\s*(\d+)|ROLL\s*NO\.?\s*(\d+))", t)
+            if m and y:
+                chamber = "house" if "HOUSE" in t else ("senate" if "SENATE" in t else None)
+                roll_no = int(m.group(1) or m.group(2))
+                if chamber:
+                     hints.append({"chamber": chamber, "year": y, "roll": roll_no})
+        return hints
+
+    def _parse_house_xml(self, root):
+        if root is None:
+            return None
+        def gi(p):
+            x = root.findtext(p) or "0"
+            try:
+                return int(x)
+            except:
+                return 0
+        party_totals = {
+            "democratic": {
+                "yea": gi(".//democratic-yeas"),
+                "nay": gi(".//democratic-nays"),
+                "present": gi(".//democratic-present"),
+                "not_voting": gi(".//democratic-not-voting"),
+            },
+            "republican": {
+                "yea": gi(".//republican-yeas"),
+                "nay": gi(".//republican-nays"),
+                "present": gi(".//republican-present"),
+                "not_voting": gi(".//republican-not-voting"),
+            },
+            "independent": {
+                "yea": gi(".//independent-yeas"),
+                "nay": gi(".//independent-nays"),
+                "present": gi(".//independent-present"),
+                "not_voting": gi(".//independent-not-voting"),
+            },
+        }
+        out = {
+            "question": root.findtext(".//question") or root.findtext(".//question-text"),
+            "result": root.findtext(".//result") or root.findtext(".//vote-result"),
+            "date": root.findtext(".//vote-date") or root.findtext(".//action-date"),
+            "totals": {
+                "yea": gi(".//yea-total"),
+                "nay": gi(".//nay-total"),
+                "present": gi(".//present-total"),
+                "not_voting": gi(".//not-voting-total"),
+            },
+            "party_totals": party_totals,
+            "legis": root.findtext(".//legis-num") or root.findtext(".//bill-number"),
+        }
+        out["party_line"] = self._classify_party_line(out.get("party_totals"))
+        return out
+
+    def _parse_senate_xml(self, root):
+        if root is None:
+            return None
+        def gi(p):
+            x = root.findtext(p)
+            return int(x) if x and x.isdigit() else 0
+        party_totals = {
+            "democratic": {
+                "yea": gi(".//DEMOCRAT/YEAS"),
+                "nay": gi(".//DEMOCRAT/NAYS"),
+                "present": gi(".//DEMOCRAT/PRESENT"),
+                "not_voting": gi(".//DEMOCRAT/NOT_VOTING"),
+            },
+            "republican": {
+                "yea": gi(".//REPUBLICAN/YEAS"),
+                "nay": gi(".//REPUBLICAN/NAYS"),
+                "present": gi(".//REPUBLICAN/PRESENT"),
+                "not_voting": gi(".//REPUBLICAN/NOT_VOTING"),
+            },
+            "independent": {
+                "yea": gi(".//INDEPENDENT/YEAS"),
+                "nay": gi(".//INDEPENDENT/NAYS"),
+                "present": gi(".//INDEPENDENT/PRESENT"),
+                "not_voting": gi(".//INDEPENDENT/NOT_VOTING"),
+            },
+        }
+        out = {
+            "question": root.findtext(".//QUESTION"),
+            "result": root.findtext(".//RESULT"),
+            "date": root.findtext(".//VOTE_DATE"),
+            "totals": {
+                "yea": gi(".//YEAS"),
+                "nay": gi(".//NAYS"),
+                "present": gi(".//PRESENT"),
+                "not_voting": gi(".//NOT_VOTING"),
+            },
+            "party_totals": party_totals,
+        }
+        out["party_line"] = self._classify_party_line(out.get("party_totals"))
+        return out
+
+    def _classify_party_line(self, party_totals: dict) -> str:
+        if not party_totals:
+            return ""
+        dy = party_totals.get("democratic", {}).get("yea", 0)
+        ry = party_totals.get("republican", {}).get("yea", 0)
+        dn = party_totals.get("democratic", {}).get("nay", 0)
+        rn = party_totals.get("republican", {}).get("nay", 0)
+        if dy > 0 and ry > 0:
+            return "bipartisan"
+        if (dy > 0 and ry == 0 and rn > 0) or (ry > 0 and dy == 0 and dn > 0):
+            return "party-line"
+        return ""
+
+    async def get_votes_for_bill(self, bill):
+        out: Dict[str, Any] = {}
+        recorded: List[Dict[str, Any]] = []
+        for a in (bill.actions or []):
+            if not isinstance(a, dict):
+                continue
+            for rv in (a.get("recordedVotes") or []):
+                chamber = (rv.get("chamber") or a.get("chamber") or "").lower()
+                try:
+                    roll = int(rv.get("rollNumber"))
+                except Exception:
+                    continue
+                date = rv.get("date") or a.get("action_date") or a.get("actionDate") or ""
+                year = int(date[:4]) if len(date) >= 4 and date[:4].isdigit() else None
+                session = rv.get("sessionNumber")
+                if chamber in ("house", "senate") and roll and year:
+                    recorded.append({"chamber": chamber, "roll": roll, "year": year, "session": session})
+        seen = set()
+        hints: List[Dict[str, Any]] = []
+        for r in recorded:
+            key = (r["chamber"], r["year"], r["roll"]) 
+            if key in seen:
+                continue
+            seen.add(key)
+            hints.append(r)
+        if not hints:
+            hints = self._derive_roll_hints(bill)
+        
+        house_votes = []
+        senate_votes = []
+        
+        for h in hints:
+            if h["chamber"] == "house":
+                v = await self._get_house_vote_via_congress_api(int(bill.congress), int(h["year"]), int(h["roll"]))
+                if not v:
+                    xml = await self._fetch_xml(self._house_vote_xml(h["year"], h["roll"]))
+                    v = self._parse_house_xml(xml)
+                    if v:
+                        v["public_url"] = f"https://clerk.house.gov/Votes/rollcallvote.aspx?VoteNum={h['roll']:03d}&Year={h['year']}"
+                        v["roll"] = h["roll"]
+                if v:
+                    house_votes.append(v)
+            else:
+                session = h.get("session") or (1 if int(h["year"]) % 2 == 1 else 2)
+                xml = await self._fetch_xml(self._senate_vote_xml(int(bill.congress), session, int(h["roll"])) )
+                v = self._parse_senate_xml(xml)
+                if v:
+                    v["public_url"] = self._senate_vote_html(int(bill.congress), session, int(h["roll"]))
+                    v["roll"] = int(h["roll"])
+                    senate_votes.append(v)
+        
+        # Return the most recent vote (last in list) for compatibility, or all votes
+        if house_votes:
+            out["house"] = house_votes[-1]  # Most recent
+            out["house_votes"] = house_votes  # All votes for future use
+        if senate_votes:
+            out["senate"] = senate_votes[-1]
+            out["senate_votes"] = senate_votes
+        if out.get("house"):
+            hv = out["house"]
+        return out
+
+    async def _get_house_vote_via_congress_api(self, congress: int, year: int, roll: int) -> Optional[Dict[str, Any]]:
+        try:
+            session = 1 if year % 2 == 1 else 2
+            endpoint = f"/vote/house/{int(congress)}/{int(session)}/{int(roll)}"
+            data = await self._get_cached_or_fetch(endpoint)
+            v = data.get("vote") or data.get("houseVote") or data
+            if not isinstance(v, dict):
+                return None
+            totals = v.get("totals") or {}
+            def gi(*keys):
+                for k in keys:
+                    x = totals.get(k)
+                    if x is None:
+                        continue
+                    try:
+                        return int(x)
+                    except Exception:
+                        try:
+                            return int((x or {}).get("total"))
+                        except Exception:
+                            pass
+                return 0
+            out = {
+                "question": v.get("question") or v.get("questionText"),
+                "result": v.get("result") or v.get("voteResult"),
+                "date": v.get("date") or v.get("voteDate"),
+                "totals": {
+                    "yea": gi("yea", "yeas", "yeaTotal"),
+                    "nay": gi("nay", "nays", "nayTotal"),
+                    "present": gi("present", "presentTotal"),
+                    "not_voting": gi("notVoting", "not_voting", "notVotingTotal"),
+                },
+                "public_url": v.get("url"),
+                "roll": int(roll),
+            }
+            if not out.get("public_url"):
+                out["public_url"] = f"https://clerk.house.gov/Votes/rollcallvote.aspx?VoteNum={int(roll):03d}&Year={int(year)}"
+            return out
+        except Exception:
+            return None
+
+    async def _list_with_pagination(self, endpoint):
+        items = []
+        offset = 0
+        limit = 250
+        async with httpx.AsyncClient(timeout=20) as c:
+            while True:
+                params = {"offset": offset, "limit": limit}
+                if self.api_key:
+                    params["api_key"] = self.api_key
+                r = await c.get(f"{self.base_url}{endpoint}", params=params, headers=self.headers)
+                if r.status_code != 200:
+                    break
+                data = r.json()
+                key = next((k for k, v in data.items() if isinstance(v, list)), None)
+                batch = data.get(key, [])
+                if not batch:
+                    break
+                items.extend(batch)
+                if len(batch) < limit:
+                    break
+                offset += len(batch)
+        return items
+
+    def _extract_bill_numbers(items):
+        out = []
+        for s in items or []:
+            if isinstance(s, str):
+                out.append(s)
+        return out
+
+    async def get_committee_meetings_for_bill(self, bill, window_days: int = 21):
+        def _norm_str(s: str) -> str:
+            return " ".join(((s or "").upper()).split()).strip()
+        def _format_measure_display(bt: str, bn: int) -> str:
+            bt = (bt or "").upper()
+            if bt == "HR": return f"H.R. {bn}"
+            if bt == "S": return f"S. {bn}"
+            if bt == "HRES": return f"H.RES. {bn}"
+            if bt == "SRES": return f"S.RES. {bn}"
+            if bt == "HJRES": return f"H.J.RES. {bn}"
+            if bt == "SJRES": return f"S.J.RES. {bn}"
+            if bt == "HCONRES": return f"H.CON.RES. {bn}"
+            if bt == "SCONRES": return f"S.CON.RES. {bn}"
+            return f"{bt} {bn}"
+        async def _get_hearing_detail(congress: int, chamber: str, jacket: Any) -> Dict[str, Any]:
+            try:
+                d = await self._get_cached_or_fetch(f"/hearing/{int(congress)}/{chamber}/{jacket}")
+                return d.get("hearing") or d
+            except Exception:
+                return {}
+        def _extract_related_bills(detail: Dict[str, Any]) -> List[str]:
+            out = []
+            for k in ("relatedBills", "related-bills", "bills"):
+                arr = detail.get(k) or []
+                for b in arr:
+                    if isinstance(b, dict):
+                        bid = b.get("displayNumber") or b.get("identifier") or b.get("billId")
+                        if bid:
+                            out.append(str(bid))
+                    elif b:
+                        out.append(str(b))
+            return out
+        codes = {(c.get("code") or c.get("committee_code") or c.get("system_code") or "").upper() for c in (getattr(bill, "committees", []) or []) if c}
+        if not codes:
+            return []
+        recent = [(a.get("action_date") or a.get("actionDate") or a.get("date") or "")[:10] for a in (bill.actions or [])][-10:]
+        def in_window(ds: str) -> bool:
+            if not recent:
+                return True
+            try:
+                dt = datetime.date.fromisoformat(ds[:10])
+            except Exception:
+                return False
+            return any(len(d) == 10 and abs((dt - datetime.date.fromisoformat(d)).days) <= window_days for d in recent)
+        merged: List[Dict[str, Any]] = []
+        bid_disp = _format_measure_display(bill.bill_type, bill.bill_number)
+        bid_norm = _norm_str(bid_disp)
+        for chamber in ["house", "senate"]:
+            hs = await self._list_with_pagination(f"/hearing/{bill.congress}/{chamber}")
+            ms = await self._list_with_pagination(f"/committee-meeting/{bill.congress}/{chamber}")
+
+            for x in hs:
+                ic = {(c.get("systemCode") or c.get("code") or c.get("system_code") or "").upper() for c in (x.get("committees") or []) if c}
+                if not (ic & codes):
+                    continue
+
+                title = ((x.get("title") or "") + " " + (x.get("description") or "")).strip()
+                date = x.get("date") or ""
+                match_basis = None
+                detail = None
+                related_bills_detail = []
+
+                jacket = x.get("jacketNumber")
+                if jacket:
+                    detail = await self._get_hearing_detail(int(bill.congress), chamber, jacket)
+                    related_bills_detail = _extract_related_bills(detail) or []
+                    rel_norm = {_norm_str(rb) for rb in related_bills_detail}
+                    if bid_norm in rel_norm:
+                        match_basis = "related_bills"
+
+                if not match_basis and title and bid_norm in _norm_str(title):
+                    match_basis = "title_match"
+                if not match_basis and date and in_window(date):
+                    match_basis = "date_window"
+
+                if match_basis:
+                    related_bills_inline = [
+                        rb.get("billNumber")
+                        for rb in (x.get("relatedBills") or x.get("related_bills") or [])
+                        if rb and rb.get("billNumber")
+                    ]
+                    related_bills = sorted({*_extract_bill_numbers(related_bills_detail), *related_bills_inline})
+
+                    summary = (x.get("summary") or x.get("description") or "").strip()
+                    if not summary and detail is None and jacket:
+                        detail = await self._get_hearing_detail(int(bill.congress), chamber, jacket)
+                    if not summary and detail:
+                        summary = (detail.get("summary") or detail.get("description") or "").strip()
+
+                    merged.append({
+                        "title": x.get("title"),
+                        "date": date,
+                        "chamber": chamber,
+                        "committees": sorted(ic & codes),
+                        "url": x.get("url") or x.get("sourceLink") or x.get("source_link"),
+                        "related_bills": related_bills,
+                        "match_basis": match_basis,
+                        "source": "hearing",
+                        "findings": summary[:600] if summary else "",
+                    })
+
+            for x in ms:
+                ic = {(c.get("systemCode") or c.get("code") or c.get("committeeCode") or "").upper() for c in (x.get("committees") or []) if c}
+                if not (ic & codes):
+                    continue
+
+                title = ((x.get("title") or "") + " " + (x.get("description") or "")).strip()
+                date = x.get("date") or x.get("meetingDate") or ""
+                match_basis = None
+                detail = None
+                related_bills_detail = []
+
+                jacket = x.get("jacketNumber")
+                if jacket:
+                    detail = await self._get_hearing_detail(int(bill.congress), chamber, jacket)
+                    related_bills_detail = _extract_related_bills(detail) or []
+                    rel_norm = {_norm_str(rb) for rb in related_bills_detail}
+                    if bid_norm in rel_norm:
+                        match_basis = "related_bills"
+
+                if not match_basis and title and bid_norm in _norm_str(title):
+                    match_basis = "title_match"
+                if not match_basis and date and in_window(date):
+                    match_basis = "date_window"
+
+                if match_basis:
+                    related_bills_inline = [
+                        rb.get("billNumber")
+                        for rb in (x.get("relatedBills") or x.get("related_bills") or [])
+                        if rb and rb.get("billNumber")
+                    ]
+                    related_bills = sorted({*_extract_bill_numbers(related_bills_detail), *related_bills_inline})
+
+                    summary = (x.get("summary") or x.get("description") or "").strip()
+                    if not summary and detail is None and jacket:
+                        detail = await self._get_hearing_detail(int(bill.congress), chamber, jacket)
+                    if not summary and detail:
+                        summary = (detail.get("summary") or detail.get("description") or "").strip()
+
+                    merged.append({
+                        "title": x.get("title"),
+                        "date": date,
+                        "chamber": chamber,
+                        "committees": sorted(ic & codes),
+                        "url": x.get("url") or x.get("sourceLink") or x.get("source_link"),
+                        "related_bills": related_bills,
+                        "match_basis": match_basis,
+                        "source": "committee-meeting",
+                        "findings": summary[:600] if summary else "",
+                    })
+
+        merged.sort(key=lambda z: z.get("date") or "", reverse=True)
+        return merged[:10]
+
+    def _canonical_urls(self, bill):
+        bt = (bill.bill_type or "").lower()
+        slug = {
+            "hr": "house-bill",
+            "hres": "house-resolution",
+            "hjres": "house-joint-resolution",
+            "hconres": "house-concurrent-resolution",
+            "s": "senate-bill",
+            "sres": "senate-resolution",
+            "sjres": "senate-joint-resolution",
+            "sconres": "senate-concurrent-resolution",
+        }.get(bt, bt)
+        base = f"https://www.congress.gov/bill/{int(bill.congress)}th-congress/{slug}/{int(bill.bill_number)}"
+        u = {
+            "bill": base,
+            "actions": f"{base}/all-actions",
+            "cosponsors": f"{base}/cosponsors",
+            "all_info": f"{base}/all-info#summaries",
+        }
+        sp = getattr(bill, "sponsor", None) or {}
+        name = (sp.get("name") or "").strip().lower()
+        bid = (sp.get("bioguide_id") or "").strip()
+        if name and bid:
+            slug_name = re.sub(r"[^a-z0-9]+", "-", name).strip("-")
+            u["sponsor"] = f"https://www.congress.gov/member/{slug_name}/{bid}"
+        return u
+
+    async def _hydrate_amendment(self, congress, chamber, amd_no):
+         async with httpx.AsyncClient(timeout=20) as c:
+             params = {}
+             if self.api_key:
+                 params["api_key"] = self.api_key
+             seg = "house-amendment" if (str(chamber or "").lower() == "house") else ("senate-amendment" if (str(chamber or "").lower() == "senate") else None)
+             urls = []
+             if seg:
+                 urls.append(f"{self.base_url}/amendment/{congress}/{seg}/{int(amd_no)}")
+             else:
+                 urls.append(f"{self.base_url}/amendment/{congress}/house-amendment/{int(amd_no)}")
+                 urls.append(f"{self.base_url}/amendment/{congress}/senate-amendment/{int(amd_no)}")
+             for u in urls:
+                 r = await c.get(u, params=params, headers=self.headers)
+                 if r.status_code == 200:
+                     return r.json()
+             return {}
+
+    async def _enrich_amendments(self, bill):
+        amds = getattr(bill, "amendments", []) or []
+        out = []
+        for a in amds:
+            no = a.get("number") or a.get("amendmentNumber") or a.get("seq") or a.get("amendmentNum")
+            if no is None:
+                continue
+            try:
+                d = await self._hydrate_amendment(int(bill.congress), (a.get("chamber") or "").lower(), int(no))
+            except Exception:
+                d = {}
+            spon = d.get("sponsor") or a.get("sponsor") or {}
+            sponsor_bioguide = spon.get("bioguideId") or spon.get("bioguide_id")
+            sponsor_name = spon.get("fullName") or spon.get("name")
+            purpose = d.get("purpose") or d.get("description") or a.get("purpose") or a.get("description")
+            chamber = ((a.get("chamber") or (d.get("chamber") if d else None) or "") or "").lower() or ("house" if str(bill.bill_type).lower().startswith("h") else "senate")
+            url = self._cg_amendment_url(int(bill.congress), chamber, int(no))
+            result = a.get("result") or d.get("status") or d.get("result")
+            out.append({
+                "number": int(no),
+                "chamber": chamber,
+                "sponsor_bioguide": sponsor_bioguide,
+                "sponsor_name": sponsor_name,
+                "purpose": purpose,
+                "result": result,
+                "url": url,
+            })
+        return out
+
+    async def get_committee_details(self, chamber: str, code: str):
+        async with httpx.AsyncClient(timeout=30) as c:
+            params = {}
+            if getattr(self, "api_key", None):
+                params["api_key"] = self.api_key
+            r = await c.get(f"{self.base_url}/committee/details/{(chamber or '').lower()}/{(code or '').lower()}",
+                            params=params, headers=getattr(self, "headers", {}))
+            if r.status_code != 200:
+                return {}
+            data = r.json() or {}
+            name = (data.get("committee", {}) or {}).get("name") or data.get("name")
+            ch = (data.get("committee", {}) or {}).get("chamber") or data.get("chamber") or chamber
+            return {"code": (code or "").lower(), "name": name, "chamber": ch}
+
+    async def get_committee_members_bioguide_ids(self, chamber: str, code: str) -> set:
+        roster = await self._get_committee_members((chamber or "").lower(), (code or "").lower())
+        return roster or set()
+
+    async def cosponsors_on_committees(self, committees, cosponsors):
+        out = {}
+        for c in committees:
+            members = await self.get_committee_members_bioguide_ids(c.get("chamber",""), c.get("code",""))
+            hits = []
+            for cs in cosponsors or []:
+                bid = (cs.get("bioguide_id") or cs.get("bioguideId") or "").strip()
+                if bid and bid in members:
+                    hits.append(cs.get("name") or bid)
+            out[c.get("name") or c.get("code")] = hits
+        return out
+
+    async def build_trusted_facts(self, bill):
+        if not os.path.isdir(self.FACTS_DIR):
+            os.makedirs(self.FACTS_DIR, exist_ok=True)
+        key = f"{bill.congress}-{bill.bill_type}-{bill.bill_number}.json"
+        path = os.path.join(self.FACTS_DIR, key)
+        if os.path.exists(path) and (datetime.datetime.utcnow().timestamp() - os.path.getmtime(path)) < self.FACTS_TTL:
+            with open(path, "r") as f:
+                return json.load(f)
+
+        votes = await self.get_votes_for_bill(bill)
+        if isinstance(votes, dict):
+            if votes.get("house"):
+                hv = votes.get("house")
+        hearings = await self.get_committee_meetings_for_bill(bill)
+
+        raw = (
+            getattr(bill, "committees", None)
+            or getattr(bill, "committee_refs", None)
+            or getattr(bill, "referrals", None)
+            or []
+        )
+
+        committees_out = []
+        for ref in raw:
+            if isinstance(ref, str):
+                ch = ""
+                cd = ref
+                nm = None
+            else:
+                ch = (ref.get("chamber") or ref.get("chamberCode") or "").strip()
+                cd = (ref.get("code") or ref.get("committeeCode") or ref.get("committee") or "").strip()
+                nm = (ref.get("name") or "").strip() or None
+
+            det = None
+            if cd and (not nm or not ch):
+                det = await self.get_committee_details(ch, cd)
+
+            committees_out.append({
+                "code": (cd or "").lower(),
+                "name": nm or ((det or {}).get("name") or cd),
+                "chamber": ch or ((det or {}).get("chamber") or ""),
+            })
+
+        bill.committees = committees_out
+
+        amds = await self._enrich_amendments(bill)
+        urls = self._canonical_urls(bill)
+
+        cos = getattr(bill, "cosponsors", []) or []
+        overlap = await self.cosponsors_on_committees(committees_out, cos)
+
+        latest_text = getattr(bill, "latest_action_text", None) or (bill.actions[-1]["text"] if bill.actions else "")
+        latest_code = getattr(bill, "latest_action_code", None) or (bill.actions[-1].get("action_code") if bill.actions else "")
+        has_votes = bool((votes or {}).get("house") or (votes or {}).get("senate"))
+        had_floor_activity = has_votes or any(("ROLL" in (a.get("text","").upper()) or "ON PASSAGE" in (a.get("text","").upper()) or "PASSED" in (a.get("text","").upper())) for a in (bill.actions or []))
+        introduced_date = getattr(bill, "introduced_date", None)
+        first_action_date = (bill.actions[0].get("action_date") if (getattr(bill,"actions",None) and bill.actions and bill.actions[0].get("action_date")) else None)
+        def _derive_stage():
+             house = bool((votes or {}).get("house"))
+             senate = bool((votes or {}).get("senate"))
+             txt = " ".join([(a.get("text") or "") for a in (bill.actions or [])]).upper()
+             if "BECAME PUBLIC LAW" in txt or "SIGNED BY PRESIDENT" in txt:
+                 return "enacted"
+             if "PRESENTED TO PRESIDENT" in txt:
+                 return "to-president"
+             if house and senate:
+                 return "senate-passed"
+             if house:
+                 return "house-passed"
+             return "introduced"
+        stage = _derive_stage()
+        summaries_all = getattr(bill, "summaries", []) or []
+        summary_latest = None
+        if summaries_all:
+            try:
+                summary_latest = max((s for s in summaries_all if s.get("update_date")), key=lambda s: s.get("update_date"))
+            except Exception:
+                summary_latest = summaries_all[-1] if summaries_all else None
+
+        facts = {
+            "bill_id": f"{str(bill.bill_type).upper()} {int(bill.bill_number)}",
+            "title": bill.title or getattr(bill, "short_title", "") or "",
+            "congress": int(bill.congress),
+            "sponsor": getattr(bill, "sponsor", {}) or {},
+            "committees": committees_out,
+            "cosponsors_who_serve_on_committees": overlap,
+            "cosponsors_count": len(cos),
+            "latest_action": latest_text,
+            "status_code": latest_code or "",
+            "votes": votes,  # DEBUG: votes dict stored here - check if all fields preserved
+            "hearings": hearings,
+            "amendments": amds,
+            "urls": urls,
+            "had_floor_activity": had_floor_activity,
+             "stage": stage,
+             "introduced_date": introduced_date,
+             "first_action_date": first_action_date,
+             "summary_latest": summary_latest,
+        }
+
+        if isinstance(facts.get("votes"), dict) and facts["votes"].get("house"):
+            hv = facts["votes"]["house"]
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(facts, f, ensure_ascii=False)
+        return facts
     
     async def _rate_limit(self):
         """
@@ -302,106 +961,6 @@ class CongressAPIClient:
         
         return first_page
     
-    def _get_chamber_code(self, bill_type: str) -> str:
-        """
-        /**
-         * Convert bill type to chamber code for hearing endpoint.
-         *
-         * @param bill_type: e.g., "hr", "s", "hres", "sres"
-         * @return Chamber code: "house" or "senate"
-         */
-        """
-        bill_type_lower = bill_type.lower()
-        if bill_type_lower.startswith("h"):  # hr, hres
-            return "house"
-        elif bill_type_lower.startswith("s"):  # s, sres
-            return "senate"
-        else:
-            return "house"  # default
-    
-    async def _get_hearings_for_bill(self, congress: str, bill_type: str, bill_committees: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        /**
-         * Query hearings endpoint and match to bill by committee codes.
-         *
-         * @param congress: Congress number as string
-         * @param bill_type: Bill type (hr, s, etc.)
-         * @param bill_committees: List of committee dicts with systemCode
-         * @return List of matching hearings
-         */
-        """
-        chamber = self._get_chamber_code(bill_type)
-        bill_committee_codes = {c.get("system_code") for c in bill_committees if c.get("system_code")}
-        
-        if not bill_committee_codes:
-            return []
-        
-        hearings_endpoint = f"/hearing/{congress}/{chamber}"
-        
-        try:
-            # Fetch hearings (with pagination if needed)
-            hearings_data = await self._get_cached_or_fetch(hearings_endpoint)
-            all_hearings = []
-            
-            # Process paginated results
-            current_data = hearings_data
-            max_pages = 10  # Limit to avoid too many requests
-            page = 0
-            
-            while page < max_pages:
-                hearings_list = current_data.get("hearings", [])
-                if not hearings_list:
-                    break
-                
-                # Check each hearing to see if it matches bill committees
-                for hearing_summary in hearings_list:
-                    jacket_number = hearing_summary.get("jacketNumber")
-                    if not jacket_number:
-                        continue
-                    
-                    # Get detailed hearing info
-                    hearing_detail_endpoint = f"/hearing/{congress}/{chamber}/{jacket_number}"
-                    try:
-                        hearing_detail_data = await self._get_cached_or_fetch(hearing_detail_endpoint)
-                        hearing_detail = hearing_detail_data.get("hearing", {})
-                        
-                        # Check if hearing committees match bill committees
-                        hearing_committees = hearing_detail.get("committees", [])
-                        hearing_committee_codes = {c.get("systemCode") for c in hearing_committees if c.get("systemCode")}
-                        
-                        if bill_committee_codes & hearing_committee_codes:  # Intersection
-                            all_hearings.append({
-                                "jacket_number": jacket_number,
-                                "title": hearing_detail.get("title"),
-                                "dates": hearing_detail.get("dates", []),
-                                "committees": hearing_committees,
-                                "citation": hearing_detail.get("citation"),
-                                "formats": hearing_detail.get("formats", []),
-                                "url": hearing_summary.get("url"),
-                                "update_date": hearing_detail.get("updateDate")
-                            })
-                    except Exception as e:
-                        # Skip hearings that fail to fetch details
-                        continue
-                
-                # Check for next page
-                pagination = current_data.get("pagination", {})
-                next_url = pagination.get("next")
-                if next_url and page < max_pages - 1:
-                    # Extract offset from next URL or stop if no more pages
-                    # For now, limit to first page to avoid excessive API calls
-                    # Can be enhanced to fetch more pages if needed
-                    break
-                
-                page += 1
-                break  # For now, only check first page (can be enhanced)
-            
-            return all_hearings
-            
-        except Exception as e:
-            print(f"Warning: Could not fetch hearings: {e}")
-            return []
-    
     def _parse_bill_id(self, bill_id: str) -> tuple[str, str, int]:
         """
         /**
@@ -547,11 +1106,8 @@ class CongressAPIClient:
                 "url": committee.get("url")
             })
         
-        # Parse actions and extract votes from actions
+        # Parse actions (build before deriving votes/hearings)
         actions = []
-        votes = []
-        vote_roll_numbers_seen = set()  # Track votes to avoid duplicates
-        
         for action in actions_data.get("actions", []):
             action_code = action.get("actionCode")
             action_text = action.get("text", "").lower()
@@ -566,42 +1122,22 @@ class CongressAPIClient:
                 "url": action.get("url"),
                 "type": action.get("type")
             })
-            
-            # Extract votes from recordedVotes in actions
-            # Note: /votes endpoint doesn't exist - votes come from actions
-            if "recordedVotes" in action:
-                for recorded_vote in action.get("recordedVotes", []):
-                    roll_number = recorded_vote.get("rollNumber")
-                    # Avoid duplicate votes
-                    vote_key = f"{recorded_vote.get('chamber')}-{recorded_vote.get('congress')}-{roll_number}"
-                    if vote_key not in vote_roll_numbers_seen:
-                        vote_roll_numbers_seen.add(vote_key)
-                        
-                        # Try to extract vote result from action text
-                        action_full_text = action.get("text", "")
-                        result = None
-                        if "passed" in action_full_text.lower() or "agreed to" in action_full_text.lower():
-                            result = "Passed"
-                        elif "failed" in action_full_text.lower() or "rejected" in action_full_text.lower():
-                            result = "Failed"
-                        elif "adopted" in action_full_text.lower():
-                            result = "Adopted"
-                        
-                        votes.append({
-                            "roll_call": roll_number,
-                            "roll_number": roll_number,
-                            "question": action_full_text,  # Use action text as question description
-                            "description": action_full_text,
-                            "vote_date": recorded_vote.get("date", action_date),
-                            "chamber": recorded_vote.get("chamber"),
-                            "session_number": recorded_vote.get("sessionNumber"),
-                            "congress": recorded_vote.get("congress"),
-                            "url": recorded_vote.get("url"),
-                            "result": result
-                        })
         
-        # Fetch hearings from /hearing endpoint and match by committee codes
-        hearings = await self._get_hearings_for_bill(congress, bill_type, committees)
+        # Keep BillData.votes empty; canonical votes come from build_trusted_facts()
+        votes = []
+        
+        # Use merged hearings/meetings filtered by committees and date window
+        from types import SimpleNamespace
+        bill_like = SimpleNamespace(
+            congress=int(congress),
+            bill_type=bill_type,
+            bill_number=int(bill_number),
+            actions=actions,
+            committees=committees,
+            sponsor=sponsor,
+        )
+        hearings = await self.get_committee_meetings_for_bill(bill_like)
+
         
         # Parse summaries (for "what does this bill do")
         summaries = []
@@ -617,22 +1153,14 @@ class CongressAPIClient:
         # Parse amendments
         amendments = []
         for amendment in amendments_data.get("amendments", []):
-            sponsor_name = None
             sponsor_info = amendment.get("sponsor")
-            if sponsor_info:
-                if isinstance(sponsor_info, dict):
-                    sponsor_name = sponsor_info.get("fullName") or sponsor_info.get("firstName", "") + " " + sponsor_info.get("lastName", "")
-                else:
-                    sponsor_name = str(sponsor_info)
-            else:
-                latest_action = amendment.get("latestAction", {})
-                action_text = latest_action.get("text", "") if isinstance(latest_action, dict) else ""
-                if action_text:
-                    import re
-                    match = re.search(r'the\s+([A-Z][a-z]+(?:\s+\([A-Z]{2}\))?)\s+amendment', action_text)
-                    if match:
-                        sponsor_name = match.group(1)
-            
+            sponsor_name = None
+            if isinstance(sponsor_info, dict):
+                sponsor_name = sponsor_info.get("fullName") or " ".join(filter(None, [sponsor_info.get("firstName"), sponsor_info.get("lastName")]))
+            elif sponsor_info:
+                sponsor_name = str(sponsor_info)
+            latest_action = amendment.get("latestAction") or {}
+
             amendments.append({
                 "amendment_number": amendment.get("amendmentNumber") or amendment.get("number"),
                 "purpose": amendment.get("purpose"),
@@ -682,8 +1210,6 @@ class CongressAPIClient:
         
         return bills_data
 
-
-# Example usage and testing
 async def main():
     """Test the Congress API client."""
     client = CongressAPIClient()
@@ -698,6 +1224,6 @@ async def main():
     except Exception as e:
         print(f"Error: {e}")
 
-
 if __name__ == "__main__":
     asyncio.run(main())
+

@@ -84,3 +84,5 @@ dmypy.json
 /.venv
 /.idea
 .idea/inspectionProfiles/Project_Default.xml
+ENDPOINTS_ANALYSIS.md
+status.py

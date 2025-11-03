@@ -158,12 +158,14 @@ class ArticleGenerator:
             
             # Get fresh bill data for context
             bill_data = await self.congress_api.get_bill_data(message.bill_id)
-            
+            facts = await self.congress_api.build_trusted_facts(bill_data)
+
             # Generate article using LLM with link validation context
             article_content = await self.llm_service.generate_article(
                 bill_data, 
                 question_answers, 
-                link_check_results
+                link_check_results,
+                facts
             )
             
             # Create article metadata

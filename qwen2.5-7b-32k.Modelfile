@@ -1,0 +1,5 @@
+FROM qwen2.5:7b
+
+# Set context window to 32768 tokens (full support for qwen2.5:7b)
+PARAMETER num_ctx 32768
+

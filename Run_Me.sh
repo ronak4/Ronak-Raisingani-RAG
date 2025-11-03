@@ -46,8 +46,9 @@ fi
 # Check if Ollama service is running
 if ! curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
     echo "Ollama service is not running!"
-    echo "Starting Ollama service..."
-    ollama serve &
+    echo "Starting Ollama service with 32768 token context window..."
+    # Set context length environment variable as backup (though model parameter should handle it)
+    OLLAMA_CONTEXT_LENGTH=32768 ollama serve &
     
     # Wait for Ollama to start
     echo "Waiting for Ollama to start (10 seconds)..."
@@ -70,24 +71,57 @@ echo ""
  * Check if required model is available
  */
 '
-echo "📥 Checking for required model (qwen2.5:7b)..."
+echo "📥 Checking for required model (qwen2.5:7b-32k)..."
 
-# Check if qwen2.5:7b model is available
+# Check if base qwen2.5:7b model is available (needed to create custom model)
 if ! ollama list | grep -q "qwen2.5:7b"; then
-    echo "Model qwen2.5:7b not found!"
+    echo "Base model qwen2.5:7b not found!"
     echo "Downloading qwen2.5:7b model (this may take several minutes)..."
     echo ""
     
-    # Download the model
+    # Download the base model
     if ollama pull qwen2.5:7b; then
-        echo "Model qwen2.5:7b downloaded successfully"
+        echo "Base model qwen2.5:7b downloaded successfully"
     else
         echo "Failed to download model qwen2.5:7b"
         echo "Please check your internet connection and try again."
         exit 1
     fi
+fi
+
+# Check if custom model with 32k context window exists
+if ! ollama list | grep -q "qwen2.5:7b-32k"; then
+    echo "Custom model qwen2.5:7b-32k not found!"
+    echo "Creating custom model with 32768 token context window..."
+    echo ""
+    
+    # Create the custom model from Modelfile
+    if [ -f "qwen2.5-7b-32k.Modelfile" ]; then
+        if ollama create qwen2.5:7b-32k -f qwen2.5-7b-32k.Modelfile; then
+            echo "✅ Custom model qwen2.5:7b-32k created successfully"
+        else
+            echo "❌ Failed to create custom model"
+            echo "Please ensure Ollama is running and try again."
+            exit 1
+        fi
+    else
+        echo "❌ Modelfile qwen2.5-7b-32k.Modelfile not found!"
+        echo "Creating it now..."
+        cat > qwen2.5-7b-32k.Modelfile << 'EOF'
+FROM qwen2.5:7b
+
+# Set context window to 32768 tokens (full support for qwen2.5:7b)
+PARAMETER num_ctx 32768
+EOF
+        if ollama create qwen2.5:7b-32k -f qwen2.5-7b-32k.Modelfile; then
+            echo "✅ Custom model qwen2.5:7b-32k created successfully"
+        else
+            echo "❌ Failed to create custom model"
+            exit 1
+        fi
+    fi
 else
-    echo "✅ Model qwen2.5:7b is available"
+    echo "✅ Custom model qwen2.5:7b-32k is available"
 fi
 
 echo ""
@@ -178,9 +212,9 @@ if ! curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
 fi
 
 # Test model availability
-if ! ollama list | grep -q "qwen2.5:7b"; then
-    echo "❌ Model qwen2.5:7b not available!"
-    echo "Please ensure the model is downloaded: ollama pull qwen2.5:7b"
+if ! ollama list | grep -q "qwen2.5:7b-32k"; then
+    echo "❌ Model qwen2.5:7b-32k not available!"
+    echo "Please ensure the custom model is created."
     exit 1
 fi
 

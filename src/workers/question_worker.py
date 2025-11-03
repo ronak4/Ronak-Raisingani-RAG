@@ -171,11 +171,12 @@ class QuestionWorker:
             # Fetch bill data
             self.logger.debug(f"Fetching bill data for {message.bill_id}")
             bill_data = await self.congress_api.get_bill_data(message.bill_id)
+            facts = await self.congress_api.build_trusted_facts(bill_data)
             self.logger.debug(f"Bill data fetched for {message.bill_id}")
             
             # Generate answer using LLM
             self.logger.debug(f"Generating answer for {message.bill_id} - Q{message.question_id}")
-            answer = await self.llm_service.answer_question(bill_data, message.question_id)
+            answer = await self.llm_service.answer_question(bill_data, message.question_id, facts)
             self.logger.debug(f"Answer generated for {message.bill_id} - Q{message.question_id}")
             
             # Extract sources from the answer (URLs)

@@ -8,24 +8,23 @@
 
 ---
 
-**Raising Awareness: Congressman Newhouse Proposes National Day of Awareness for Missing and Murdered Indigenous Women and Girls**
+On May 2, 2023, Representative Dan Newhouse (R-WA) introduced House Resolution 353, which seeks to designate May 5, 2023, as the "National Day of Awareness for Missing and Murdered Indigenous Women and Girls." The resolution aims to raise awareness about a critical issue affecting indigenous communities in the United States. As of June 9, 2023, H.Res.353 has not yet passed any committee or received a vote.
 
-In an effort to bring attention to the critical issue of missing and murdered indigenous women and girls, Washington’s 4th district representative, Dan Newhouse (R-WA), has introduced a resolution that seeks to designate May 5, 2023, as the “National Day of Awareness for Missing and Murdered Indigenous Women and Girls.” [H.Res.353](https://www.congress.gov/bill/118th-congress/house-resolution/353) is currently in the early stages of the legislative process.
+The bill was referred to two key committees: the Committee on Natural Resources and the Committee on the Judiciary. Additionally, it was also referred to the Subcommittee on Indian and Insular Affairs. The Natural Resources Committee is responsible for matters related to natural resources, public lands, and environmental issues, while the Judiciary Committee oversees legal and constitutional matters, including civil rights.
 
-The resolution aims to raise public awareness about the alarming rates of violence against indigenous women and girls, which have been persistently underreported and understudied. [Rep. Dan Newhouse](https://www.congress.gov/member/N000189), a Republican representative from Washington’s 4th district, introduced H.Res.353 to ensure that this issue receives the attention it deserves.
+Rep. Dan Newhouse (R-WA) has taken the lead on this resolution. He represents Washington's 4th district and has been a vocal advocate for indigenous rights. The bill has received cosponsorship from 39 members of Congress, with several being committee members themselves. Notable cosponsors include Reps. Gwen Moore [D-WI-4], Doris Matsui [D-CA-7], Katie Porter [D-CA-47], Eleanor Holmes Norton [D-DC-At Large], Betty McCollum [D-MN-4], Suzanne Bonamici [D-OR-1], Melanie Ann Stansbury [D-NM-1], Earl Blumenauer [D-OR-3], and Julia Brownley [D-CA-26]. Rep. Norton, a member of the Natural Resources Committee, and several others are also members of both the Natural Resources Committee and Judiciary Committee.
 
-The bill is currently referred to two key committees: the Natural Resources Committee and the Judiciary Committee. [Natural Resources Committee](https://www.congress.gov/committee/natural-resources-committee/house) focuses on issues related to natural resources, public lands, and water, while the Judiciary Committee handles matters of justice, civil rights, and legal reform.
+As of now, there have been no hearings held for H.Res.353. The bill has not yet been scheduled for a hearing or markup session by any of the relevant committees. The next steps will likely involve further referral within these committees and potentially additional actions such as committee reports, amendments, and floor debates before it could be voted on by the full House.
 
-As of now, 39 cosponsors have joined Newhouse in supporting this resolution. Among them are representatives such as Gwen Moore (D-WI-4), Doris O. Matsui (D-CA-7), Katie Porter (D-CA-47), and Eleanor Holmes Norton (Del.), a long-time advocate for indigenous rights. Notably, several of these cosponsors also sit on the Natural Resources Committee, which could expedite the bill’s progress.
+Notably, there have been no proposed amendments to H.Res.353 according to the latest data available from Congress.gov. The status of the bill is listed as "N/A," indicating that there are no updates or actions recorded for it at present.
 
-No specific hearings have been held on H.Res.353 as of now. However, it is worth noting that related bills and topics have had hearings in Congress. For instance, [H.R. 6441](https://www.congress.gov/bill/118th-congress/house-bill/6441), which addresses violence against women, has undergone scrutiny by the Judiciary Committee.
+Regarding votes, H.Res.353 has not had any recorded votes as of the latest update. There have been no roll call votes associated with this resolution, and therefore, we cannot determine whether a vote was party-line or bipartisan based on the given data. The bill's status remains "N/A," indicating that there are no updates or actions recorded for it at present.
 
-Since H.Res.353 is a resolution and not a bill that proposes new laws or funding, no amendments have been proposed for this particular resolution. The focus remains on raising awareness rather than implementing specific policies.
+The next steps for H.Res.353 will likely involve further referral within the relevant committees and potentially additional actions such as committee reports, amendments, and floor debates before it could be voted on by the full House. The resolution seeks to raise awareness about a critical issue affecting indigenous communities in the United States, and its passage would mark an important step towards addressing this pressing concern.
 
-As of now, there are no recorded votes on H.Res.353. Given the bipartisan nature of its sponsors and cosponsors, it is likely that any vote would be a bipartisan effort. However, without a recorded vote, we cannot determine if this will be the case.
+In summary, H.Res.353 is currently at the stage of being referred to committees for further consideration. While there have been no votes or amendments recorded as of now, the bill has received significant support from a diverse group of cosponsors, including members of both the Natural Resources Committee and Judiciary Committee. The resolution's next steps will depend on actions taken by these committees in the coming months.
 
-The introduction of H.Res.353 by Rep. Newhouse marks an important step in addressing the urgent need to recognize and honor the lives lost to violence while also advocating for better support systems for indigenous communities. The resolution aims to create a day dedicated to remembering those who have gone missing or been murdered, as well as to push for more comprehensive data collection and policy changes.
-
-While H.Res.353 is currently in the early stages of the legislative process, its potential impact on raising awareness and fostering dialogue around this critical issue cannot be understated. As it moves through the committees and potentially receives a vote, it will be crucial to monitor its progress and support from both sides of the aisle.
-
-In conclusion, H.Res.353 is an important step towards recognizing the ongoing struggle faced by indigenous women and girls. While there are no immediate concerns about the bill’s passage, continued attention and support are necessary to ensure that this issue receives the national recognition it deserves.
+[House Resolution 353](https://www.congress.gov/bill/118th-congress/house-resolution/353)
+[Rep. Dan Newhouse](https://www.congress.gov/member/N000189)
+[Natural Resources Committee](https://naturalresources.house.gov/)
+[Judiciary Committee](https://judiciary.house.gov/)

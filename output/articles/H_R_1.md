@@ -8,64 +8,24 @@
 
 ---
 
-**Energy Bill H.R. 1: A Comprehensive Plan to Lower Costs and Boost Development**
+The Lower Energy Costs Act, introduced by Rep. Steve Scalise of Louisiana's 1st congressional district on March 14, 2023, aims to expedite energy projects and reduce certain fees related to the development of federal energy resources. The bill passed the House on March 30, 2023 (Roll Call 182 – 225 yea / 204 nay) and was received in the Senate on April 3, 2023, where it was referred to the Committee on Energy and Natural Resources.
 
-In the ongoing debate over energy policy, Representative Steve Scalise (R-LA) has introduced [H.R. 1 - Lower Energy Costs Act](https://www.congress.gov/bill/118th-congress/house-bill/1), a sweeping piece of legislation aimed at reducing energy costs and accelerating the development of domestic resources. The bill, which was introduced on March 14, 2023, has already made significant progress through the legislative process.
+The act covers a broad range of provisions designed to increase American energy production, exports, infrastructure, and critical minerals processing. It seeks to expedite energy projects, eliminate certain fees related to federal energy resource development, and repeal or modify select Inflation Reduction Act programs that incentivize emissions reductions. These measures are intended to lower energy costs by streamlining the process for accessing and utilizing domestic energy resources.
 
-### What Does This Bill Do? Where Is It in the Process?
+The bill has been referred to multiple committees, including the Natural Resources Committee and the Energy and Commerce Committee. Additionally, it has been sent to the Transportation and Infrastructure Committee and the Budget Committee. The Natural Resources Committee is responsible for overseeing natural resource management, while the Energy and Commerce Committee handles matters related to energy policy, telecommunications, and consumer protection.
 
-H.R. 1 seeks to expedite the exploration, development, importation, and exportation of energy resources such as oil, gas, and minerals. Key provisions include expediting energy projects, eliminating or reducing certain fees related to federal energy resource development, and ending funds that incentivize reductions in greenhouse gas emissions. The bill is currently under consideration by multiple committees.
+Rep. Steve Scalise, a Republican from Louisiana's 1st district, serves as the primary sponsor of H.R. 1 - Lower Energy Costs Act. Scalise, as House Majority Leader, has championed the bill though he does not serve on the committees directly reviewing it. Scalise has been a vocal proponent of energy policy reform, aiming to reduce regulatory burdens and promote domestic energy production.
 
-### What Committees Is This Bill In?
+Among the cosponsors are 49 Republican representatives from various states, including Louisiana, Washington, Arkansas, Missouri, New York, Georgia, and others. Several notable figures such as Rep. McMorris Rodgers (R-WA-5), Rep. Westerman (R-AR-4), Rep. Graves (R-MO-6), and Rep. Stefanik (R-NY-21) are among the 49 cosponsors. Committee chairs McMorris Rodgers and Westerman are included among the cosponsors, indicating strong Republican support for this bill.
 
-The Lower Energy Costs Act has been referred to several key committees for review:
-- [Natural Resources Committee](https://www.congress.gov/committee/natural-resources-committee)
-- [Energy and Commerce Committee](https://www.congress.gov/committee/energy-and-commerce-committee)
-- [Transportation and Infrastructure Committee](https://www.congress.gov/committee/transportation-and-infrastructure-committee)
+Notably, there have been no records of any hearings held for H.R. 1 - Lower Energy Costs Act in either committee. The summary suggests that the bill may have advanced under a House/Senate rule or direct floor consideration, which bypassed committee hearings altogether. However, without specific details on this process, it is unclear whether any discussions or outcomes from potential hearings occurred.
 
-These committees will likely hold hearings, consider amendments, and ultimately vote on the bill before it can move forward.
+Amendments to H.R. 1 - Lower Energy Costs Act have been proposed, with 37 total amendments introduced as of March 30, 2023. For instance, Amendment 168 seeks to provide regulatory certainty by explicitly authorizing common practices such as NPDES general permits and allowing continuances during administrative delays. This amendment is part of House Report 118-30 and aims to expedite energy project development.
 
-### Who Is the Sponsor?
+Amendment 167 requires the Government Accountability Office to publish a report on all potential adverse effects of wind energy development in the North Atlantic Planning Area, focusing on environmental concerns related to offshore wind projects. Amendment 166 mandates a study by the Government Accountability Office on the sufficiency of the environmental review process for offshore wind, assessing the adequacy of current procedures.
 
-Rep. Steve Scalise from Louisiana's 1st congressional district is the sponsor of H.R. 1 - Lower Energy Costs Act. As a Republican, Scalise has long advocated for energy independence and lower costs for consumers. His introduction of this bill reflects his commitment to these goals.
+A key vote occurred on H.R. 1 - Lower Energy Costs Act on March 30, 2023. Roll Call Vote 182 resulted in final passage with 225 yea votes (primarily Republicans plus 4 Democrats) and 204 nay votes (all Democrats except 4). This vote can be accessed via [Roll Call 182](https://clerk.house.gov/Votes/rollcallvote.aspx?VoteNum=182&Year=2023).
 
-### Who Cosponsored This Bill? Are Any of the Cosponsors on the Committee That the Bill Is in?
+The bill is now in the Senate Committee on Energy and Natural Resources; no further action has been taken to date since its referral on April 3, 2023.
 
-H.R. 1 has garnered support from a diverse group of cosponsors, including:
-- Rep. McMorris Rodgers, Cathy [R-WA-5] (R-WA)
-- Rep. Westerman, Bruce [R-AR-4] (R-AR)
-- Rep. Graves, Sam [R-MO-6] (R-MO)
-
-Interestingly, some of these cosponsors are also members of the committees considering H.R. 1:
-- Rep. McMorris Rodgers is a member of both the Energy and Commerce Committee and the Transportation and Infrastructure Committee.
-- Rep. Westerman serves on the Energy and Commerce Committee.
-- Rep. Graves is part of the Natural Resources Committee.
-
-### Have Any Hearings Happened on the Bill? If So, What Were the Findings?
-
-While no specific hearings have been held directly on H.R. 1 - Lower Energy Costs Act as of now, several relevant hearings have taken place in committees associated with the bill:
-- [AMERICAN NUCLEAR ENERGY EXPANSION: UPDATING POLICIES TO ENHANCE THE ROLE OF NUCLEAR POWER IN A CARBON-FREE FUTURE](https://www.congress.gov)
-- [MACRA CHECKUP: ASSESSING IMPLEMENTATION AND CHALLENGES](https://www.congress.gov)
-
-These hearings have provided valuable insights into the broader energy landscape and may inform future discussions on H.R. 1.
-
-### Have Any Amendments Been Proposed on the Bill? If So, Who Proposed Them and What Do They Do?
-
-Several amendments have been proposed to H.R. 1 - Lower Energy Costs Act:
-- **Amendment 168** (Sponsor: Rep. Graves [R-LA]) aims to provide regulatory certainty by explicitly authorizing common practices like NPDES general permits and allowing continuances during administrative delays.
-- **Amendment 167** requires the Environmental Protection Agency (EPA) to issue regulations for carbon capture, utilization, and storage technologies.
-
-These amendments reflect ongoing efforts to refine and strengthen the bill's provisions.
-
-### Have Any Votes Happened on the Bill? If So, Was It a Party-Line Vote or a Bipartisan One?
-
-Yes, votes have occurred on H.R. 1 - Lower Energy Costs Act:
-- **Passed — On passage**: The bill passed by a vote of 225 to 204 (Roll no. 182). This indicates that the vote was not strictly party-line; there were some Democrats who voted in favor and some Republicans who voted against.
-
-This bipartisan support suggests that H.R. 1 may have broader appeal, but it remains to be seen how the bill will fare as it moves through further committee stages.
-
-### Conclusion
-
-The Lower Energy Costs Act (H.R. 1) represents a significant step forward in energy policy reform. With its wide-ranging provisions and strong bipartisan support, this bill could potentially reshape the domestic energy landscape. However, its ultimate fate remains uncertain as it continues to navigate the complex legislative process.
-
-For those concerned about energy costs and environmental regulations, H.R. 1 is an important piece of legislation worth following closely. The bill's passage through committees and the subsequent votes indicate a growing consensus on the need for reform, but the road ahead will be challenging. Stay tuned as this bill continues to evolve in Congress.
+In conclusion, H.R. 1 - Lower Energy Costs Act is poised to significantly impact American energy policy by expediting project development and reducing regulatory fees. Its next steps will depend on further action from the Senate Committee on Energy and Natural Resources, where it currently awaits consideration. The bill's current stage reflects a complex legislative process with ongoing developments that could shape future energy policies in the United States.
